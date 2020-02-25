@@ -154,7 +154,6 @@ class BufferedTx(frequency: Int, baudRate: Int) extends Module {
 /**
  * Send a string.
  */
-/*
 class Sender(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
     val txd = Output(Bits(1.W))
@@ -164,7 +163,7 @@ class Sender(frequency: Int, baudRate: Int) extends Module {
 
   io.txd := tx.io.txd
 
-  val msg = "Hello World!"
+  val msg = "0123456789"
   val text = VecInit(msg.map(_.U))
   val len = msg.length.U
 
@@ -175,9 +174,10 @@ class Sender(frequency: Int, baudRate: Int) extends Module {
 
   when(tx.io.channel.ready && cntReg =/= len) {
     cntReg := cntReg + 1.U
+  } .elsewhen(tx.io.channel.ready) {
+    cntReg := 0.U(8.W)
   }
 }
-*/
 
 class Echo(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
@@ -199,7 +199,7 @@ class UartMain(frequency: Int, baudRate: Int) extends Module {
     val led = Output(UInt(1.W))
   })
 
-  /*val doSender = true
+  val doSender = true
 
   if (doSender) {
     val s = Module(new Sender(frequency, baudRate))
@@ -208,28 +208,28 @@ class UartMain(frequency: Int, baudRate: Int) extends Module {
     val e = Module(new Echo(frequency, baudRate))
     e.io.rxd := io.rxd
     io.txd := e.io.txd
-  }*/
+  }
 
-  val tx = Module(new BufferedTx(frequency, baudRate))
-  io.txd := tx.io.txd
+  //val tx = Module(new BufferedTx(frequency, baudRate))
+  //io.txd := tx.io.txd
 
   val CNT_MAX = (50000000 / 4 - 1).U;
 
   val cntReg = RegInit(0.U(32.W))
   val blkReg = RegInit(0.U(1.W))
 
-  tx.io.channel.data := '0'.U
-  tx.io.channel.valid := cntReg === CNT_MAX
+  //tx.io.channel.data := '2'.U
+  //tx.io.channel.valid := cntReg === CNT_MAX
 
   cntReg := cntReg + 1.U
-  when(cntReg === CNT_MAX && tx.io.channel.ready) {
+  when(cntReg === CNT_MAX/* && tx.io.channel.ready*/) {
     blkReg := ~blkReg
     cntReg := 0.U
-    //if (blkReg == 1.U(1.W)) {
+    /*when (blkReg === 0.U(1.W)) {
+      tx.io.channel.data := '0'.U
+    } .otherwise {
       tx.io.channel.data := '1'.U
-    //} else {
-    //  tx.io.channel.data := '0'.U
-    //}
+    }*/
   }
 
   io.led := blkReg
