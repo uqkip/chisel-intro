@@ -3,11 +3,10 @@
  * A UART is a serial port, also called an RS232 interface.
  * 
  */
-
 package uart
 
 import chisel3._
-import chisel3.util._
+import chisel3.util.{Cat, Enum}
 
 /**
  * This is a minimal data channel with a ready/valid handshake.
@@ -155,6 +154,7 @@ class BufferedTx(frequency: Int, baudRate: Int) extends Module {
 /**
  * Send a string.
  */
+/*
 class Sender(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
     val txd = Output(Bits(1.W))
@@ -177,6 +177,7 @@ class Sender(frequency: Int, baudRate: Int) extends Module {
     cntReg := cntReg + 1.U
   }
 }
+*/
 
 class Echo(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
@@ -195,9 +196,10 @@ class UartMain(frequency: Int, baudRate: Int) extends Module {
   val io = IO(new Bundle {
     val rxd = Input(Bits(1.W))
     val txd = Output(Bits(1.W))
+    val led = Output(UInt(1.W))
   })
 
-  val doSender = true
+  /*val doSender = true
 
   if (doSender) {
     val s = Module(new Sender(frequency, baudRate))
@@ -206,7 +208,31 @@ class UartMain(frequency: Int, baudRate: Int) extends Module {
     val e = Module(new Echo(frequency, baudRate))
     e.io.rxd := io.rxd
     io.txd := e.io.txd
+  }*/
+
+  val tx = Module(new BufferedTx(frequency, baudRate))
+  io.txd := tx.io.txd
+
+  val CNT_MAX = (50000000 / 4 - 1).U;
+
+  val cntReg = RegInit(0.U(32.W))
+  val blkReg = RegInit(0.U(1.W))
+
+  tx.io.channel.data := '0'.U
+  tx.io.channel.valid := cntReg === CNT_MAX
+
+  cntReg := cntReg + 1.U
+  when(cntReg === CNT_MAX && tx.io.channel.ready) {
+    blkReg := ~blkReg
+    cntReg := 0.U
+    //if (blkReg == 1.U(1.W)) {
+      tx.io.channel.data := '1'.U
+    //} else {
+    //  tx.io.channel.data := '0'.U
+    //}
   }
+
+  io.led := blkReg
 
 }
 
